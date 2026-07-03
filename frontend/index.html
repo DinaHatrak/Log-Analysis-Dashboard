@@ -1,1 +1,65 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>لوحة تحكم السجلات</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f6f9; margin: 0; padding: 20px; color: #333; }
+        .header { background: #16a085; color: white; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .metric { font-size: 24pt; font-weight: bold; color: #2c3e50; }
+    </style>
+</head>
+<body>
 
+    <div class="header">
+        <h1 style="margin:0; font-size:18pt;">📊 لوحة تحكم مراقبة وتحليل السجلات الفورية</h1>
+    </div>
+
+    <div class="grid">
+        <div class="card">
+            <h3>إجمالي الطلبات المستلمة (Total Requests)</h3>
+            <div class="metric" id="totalRequests">0</div>
+        </div>
+
+        <div class="card">
+            <h3>أكواد الحالة (HTTP Status codes)</h3>
+            <canvas id="statusChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        let chart;
+        function updateDashboard() {
+            fetch('http://127.0.0.1:8000/api/stats')
+                .then(res => res.json())
+                .then(data => {
+                    if(data.error) return;
+                    document.getElementById('totalRequests').innerText = data.total_requests;
+                    
+                    const labels = data.status_distribution.map(i => `كود ${i.status}`);
+                    const counts = data.status_distribution.map(i => i.count);
+                    
+                    if (chart) {
+                        chart.data.labels = labels;
+                        chart.data.datasets[0].data = counts;
+                        chart.update();
+                    } else {
+                        const ctx = document.getElementById('statusChart').getContext('2d');
+                        chart = new Chart(ctx, {
+                            type: 'bar',
+                            data: {
+                                labels: labels,
+                                datasets: [{ label: 'عدد الطلبات', data: counts, backgroundColor: '#3498db' }]
+                            }
+                        });
+                    }
+                }).catch(err => console.log("API offline"));
+        }
+        setInterval(updateDashboard, 2000);
+        updateDashboard();
+    </script>
+</body>
+</html>
